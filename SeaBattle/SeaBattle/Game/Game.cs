@@ -1,95 +1,115 @@
 ﻿using System;
 using System.Net;
-using System.Net.Sockets;
 using System.Text;
+using System.Net.Sockets;
+using System.Collections.Generic;
+using System.Threading;
+using System.Linq;
 
 namespace SeaBattle
 {
     public class Game
     {
-        private IPEndPoint ipPoint;
-        private Socket gameSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-        private Socket connectedSocket = null;
-        private StringBuilder builder = new StringBuilder();
+        IPEndPoint ipPoint = new IPEndPoint(IPAddress.Parse(Program.address), Program.port);
+        Socket mainSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+        Socket seconPlayer = null;
+        public void SetUpServer()
+        {
+            try
+            {
+                // связываем сокет с локальной точкой, по которой будем принимать данные
+                mainSocket.Bind(ipPoint);
+
+                // начинаем прослушивание
+                mainSocket.Listen(10);
+
+                Console.WriteLine("Сервер запущен. Ожидание подключений...");
+
+                while (seconPlayer is null)
+                {
+                    seconPlayer = mainSocket.Accept();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            Start();
+        }
         public void SetUpConnection()
         {
-            Console.WriteLine("Connect ? y/n");
-            if (Console.ReadLine()[0] == 'y')
+            try
             {
-                ConnectLobby();
-                return;
+                mainSocket.Connect(ipPoint);
+
             }
-            else
+            catch (Exception ex)
             {
-                Console.WriteLine("Create lobby ? y/n");
-                if (Console.ReadLine()[0] != 'y')
-                    return;
-                CreateLobby();
+                Console.WriteLine(ex.Message);
             }
-        }
-        private void CreateIpPoint()
-        {
-            Console.WriteLine("Enter ip '0' - standart");
-
-            string ip = Console.ReadLine();
-
-            if (ip == "0")
-                ip = Program.address;
-
-            Console.WriteLine("Enter port '0' - standart");
-
-            int port = int.Parse(Console.ReadLine());
-
-            if (port == 0)
-                port = Program.port;
-
-            ipPoint = new IPEndPoint(IPAddress.Parse(ip), port);
-        }
-        private void CreateLobby()
-        {
-            CreateIpPoint();
-            gameSocket.Bind(ipPoint);
-            gameSocket.Listen(4);
-
-            while (connectedSocket is null)
-                connectedSocket = gameSocket.Accept();
-
-            byte[] data = new byte[256];
-            while(true)
-            {
-                var bytes = connectedSocket.Receive(data);
-                Console.WriteLine(GetStringFromBytes(data, bytes));
-                data = new byte[256];
-            }
-            Console.WriteLine("Сервер запущен. Ожидание подключений...");
-        }
-        private void ConnectLobby()
-        {
-            CreateIpPoint();
-
-            gameSocket.Connect(ipPoint);
-            while (true)
-            {
-                byte[] message = EncodeString(Console.ReadLine());
-                gameSocket.Send(message);
-            }
-            //socket.Send(data);
-            //socket.Shutdown(SocketShutdown.Both);
-            //socket.Close();
+            Start();
         }
         public void Start()
         {
-
+            Thread write = new Thread(WriteTask);
+            write.Start();
+            while (true)
+            {
+                if (!(seconPlayer is null))
+                    if (seconPlayer.Available > 0)
+                    {
+                        var data = ListenSocketReceive();
+                        Console.WriteLine(Converter.BytesToString(data.Item1, data.Item2));
+                    }
+                if (mainSocket.Available > 0)
+                {
+                    var data = ListenSocketReceive();
+                    Console.WriteLine(Converter.BytesToString(data.Item1, data.Item2));
+                }
+            }
+            Exit();
         }
-        private string GetStringFromBytes(byte[] data, int bytes)
+        public void Exit()
         {
-            builder.Clear();
-            return builder.Append(Encoding.Unicode.GetString(data, 0, bytes)).ToString();
+            mainSocket.Shutdown(SocketShutdown.Both);
+            mainSocket.Close();
+            Console.Read();
         }
-        private int CountNumberOfBytes(byte[] data)
-            => gameSocket.Receive(data, data.Length, 0);
-        private byte[] EncodeString(string message)
-            =>Encoding.Unicode.GetBytes(message);
-        
+        private void WriteTask()
+        {
+            while(true)
+                Write(Converter.StringToBytes(Console.ReadLine() + " "));
+        }
+        private void Write(byte[] data)
+        {
+            if (seconPlayer is null)
+            {
+                mainSocket.Send(data);
+                return;
+            }
+            seconPlayer.Send(data);
+        }
+        private (byte[], int) ListenSocketReceive()
+        {
+
+            byte[] data = new byte[256];
+            int bytes = 0;
+            if(seconPlayer is null)
+            {
+                do
+                {
+                    bytes = mainSocket.Receive(data, data.Length, 0);
+                }
+                while (mainSocket.Available > 0);
+            }
+            else
+                do
+                {
+                    bytes = seconPlayer.Receive(data, data.Length, 0);
+                }
+                while (seconPlayer.Available > 0);
+
+            return (data, bytes);
+        }
     }
 }

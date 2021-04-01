@@ -2,20 +2,24 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 
 namespace SeaBattle
 {
     class Program
     {
-        public static int port = 8005;
+        public static int port = 8005; 
         public static string address = "127.0.0.1";
         static void Main(string[] args)
         {
-            Console.WriteLine($"What game you want (online|offline)");
-            var type = Console.ReadLine().ToLower();
-            if (type == "online")
+            Console.WriteLine("0 - server | else - connect");
+            int a = int.Parse(Console.ReadLine());
+            if (a == 0)
+                new Game().SetUpServer();
+            else
                 new Game().SetUpConnection();
 
         }
+        
     }
 }
