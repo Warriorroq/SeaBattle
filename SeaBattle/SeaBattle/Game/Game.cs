@@ -10,11 +10,12 @@ namespace SeaBattle
 {
     public class Game
     {
-        IPEndPoint ipPoint = new IPEndPoint(IPAddress.Parse(Program.address), Program.port);
-        Socket mainSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-        Socket seconPlayer = null;
+        private IPEndPoint ipPoint = new IPEndPoint(IPAddress.Parse(Program.address), Program.port);
+        private Socket mainSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+        private List<Socket> sockets = null;
         public void SetUpServer()
         {
+            sockets = new List<Socket>();
             try
             {
                 // связываем сокет с локальной точкой, по которой будем принимать данные
@@ -25,10 +26,11 @@ namespace SeaBattle
 
                 Console.WriteLine("Сервер запущен. Ожидание подключений...");
 
-                while (seconPlayer is null)
+                while (sockets.Count == 0)
                 {
-                    seconPlayer = mainSocket.Accept();
+                    sockets.Add(mainSocket.Accept());
                 }
+                Console.WriteLine("Подключилось 4 человека...");
             }
             catch (Exception ex)
             {
@@ -41,7 +43,7 @@ namespace SeaBattle
             try
             {
                 mainSocket.Connect(ipPoint);
-
+                Console.WriteLine("Подключилось...");
             }
             catch (Exception ex)
             {
@@ -49,67 +51,86 @@ namespace SeaBattle
             }
             Start();
         }
-        public void Start()
+        private void UpdateSocketsInfo()
         {
-            Thread write = new Thread(WriteTask);
-            write.Start();
-            while (true)
+            foreach (var socket in sockets)
             {
-                if (!(seconPlayer is null))
-                    if (seconPlayer.Available > 0)
-                    {
-                        var data = ListenSocketReceive();
-                        Console.WriteLine(Converter.BytesToString(data.Item1, data.Item2));
-                    }
-                if (mainSocket.Available > 0)
+                if (socket.Available > 0)
                 {
-                    var data = ListenSocketReceive();
+                    var data = ListenSocketReceive(socket);
+                    ReSendData(data.Item1, socket);
                     Console.WriteLine(Converter.BytesToString(data.Item1, data.Item2));
                 }
             }
-            Exit();
         }
-        public void Exit()
+        private void WriteNewInformation()
         {
-            mainSocket.Shutdown(SocketShutdown.Both);
-            mainSocket.Close();
-            Console.Read();
+            if (mainSocket.Available > 0)
+            {
+                var data = ListenSocketReceive(mainSocket);
+                Console.WriteLine(Converter.BytesToString(data.Item1, data.Item2));
+            }
         }
         private void WriteTask()
         {
-            while(true)
-                Write(Converter.StringToBytes(Console.ReadLine() + " "));
+            while(sockets is null)
+                Write(Converter.StringToBytes(Console.ReadLine()));
+            while (!(sockets is null))
+                ReSendData(Converter.StringToBytes(Console.ReadLine()), null);
         }
         private void Write(byte[] data)
         {
-            if (seconPlayer is null)
+            if (sockets is null)
             {
                 mainSocket.Send(data);
                 return;
             }
-            seconPlayer.Send(data);
         }
-        private (byte[], int) ListenSocketReceive()
+        private void ReSendData(byte[] data, Socket sender)
+        {
+            foreach (var socket in sockets)
+                if (socket != sender)
+                    socket.Send(data);
+        }
+        private (byte[], int) ListenSocketReceive(Socket socket)
         {
 
             byte[] data = new byte[256];
             int bytes = 0;
-            if(seconPlayer is null)
+            do
             {
-                do
-                {
-                    bytes = mainSocket.Receive(data, data.Length, 0);
-                }
-                while (mainSocket.Available > 0);
+                bytes = socket.Receive(data, data.Length, 0);
             }
-            else
-                do
-                {
-                    bytes = seconPlayer.Receive(data, data.Length, 0);
-                }
-                while (seconPlayer.Available > 0);
-
+            while (socket.Available > 0);
             return (data, bytes);
+        }
+        private void UpdateConnection()
+        {
+            if(!(sockets is null))
+            {
+                UpdateSocketsInfo();
+            }
+            WriteNewInformation();
+        }
+        public void Start()
+        {
+            Thread write = new Thread(WriteTask);
+            write.Start();
+            Update();
+            Exit();
+        }
+        private void Update()
+        {
+            while (true)
+            {
+                UpdateConnection();
+            }
+        }
+        private void Exit()
+        {
+            mainSocket.Shutdown(SocketShutdown.Both);
+            mainSocket.Close();
+            Console.Read();
         }
     }
 }

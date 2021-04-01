@@ -12,7 +12,7 @@ namespace SeaBattle
         public static string BytesToString(byte[] data, int bytes)
         {
             stringBuilder.Clear();
-            return stringBuilder.Append(Encoding.Unicode.GetString(data, 0, bytes)).ToString();
+            return stringBuilder.Append(Encoding.Unicode.GetString(data, 0, bytes)).ToString() + " ";
         }
     }
 }
