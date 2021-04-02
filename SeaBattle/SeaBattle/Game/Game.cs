@@ -29,12 +29,14 @@ namespace SeaBattle
         }
         public void Start()
         {
+            //re write map creating
             map = MapFabric.CreateMap(10, 10);
             writeToNet.Start();
             ConsoleDraw.Draw(map, mapEnemy);
             Update();
             Protocol.Disconnect();
         }
+        ///Re write this
         public static void GetMessage(string message)
         {
             var a = message.Split();
@@ -51,9 +53,10 @@ namespace SeaBattle
                             map[y, x] = '♂';
                         else if (map[y, x] == '░')
                             map[y, x] = '☼';
-
                         Protocol.Write($"{map[y, x]} {y} {x}");
                         shoot = true;
+                        Console.Clear();
+                        ConsoleDraw.Draw(map, mapEnemy);
                     }
                 }
                 else
@@ -65,10 +68,10 @@ namespace SeaBattle
                         int x = int.Parse(a[2]);
                         mapEnemy[y, x] = a1;
                         shoot = false;
+                        Console.Clear();
+                        ConsoleDraw.Draw(map, mapEnemy);
                     }
                 }
-                Console.Clear();
-                ConsoleDraw.Draw(map, mapEnemy);
             }
             catch
             {
@@ -78,6 +81,7 @@ namespace SeaBattle
         }
         private void Update()
         {
+            //Do score, game reload addictive connections
             while (true)
             {
                 Protocol.UpdateConnection();
