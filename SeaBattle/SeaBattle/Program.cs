@@ -18,8 +18,6 @@ namespace SeaBattle
                 new Game().SetUpServer();
             else
                 new Game().SetUpConnection();
-
         }
-        
     }
 }
