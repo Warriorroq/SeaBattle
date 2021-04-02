@@ -65,20 +65,19 @@ namespace SeaBattle
                 Game.GetMessage(Converter.BytesToString(data.Item1, data.Item2));
             }
         }
-        public static void WriteTask()
+        public static void UseConsoleAsChat()
         {
             while (sockets is null)
-                Write(Converter.StringToBytes(Console.ReadLine()));
+                mainSocket.Send(Converter.StringToBytes(Console.ReadLine()));
             while (!(sockets is null))
                 ReSendData(Converter.StringToBytes(Console.ReadLine()), null);
         }
-        private static void Write(byte[] data)
+        public static void Write(string data)
         {
-            if (sockets is null)
-            {
-                mainSocket.Send(data);
-                return;
-            }
+            if(sockets is null)
+                mainSocket.Send(Converter.StringToBytes(data));
+            else
+                ReSendData(Converter.StringToBytes(data), null);
         }
         private static void ReSendData(byte[] data, Socket sender)
         {
