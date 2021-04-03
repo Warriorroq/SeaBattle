@@ -81,7 +81,7 @@ namespace SeaBattle
                 {
                     var data = ListenSocketReceive(socket);
                     ReSendData(data.Item1, socket);
-                    Game.GetMessage(Converter.BytesToString(data.Item1, data.Item2));
+                    Program.game.GetMessage(Converter.BytesToString(data.Item1, data.Item2));
                 }
             }
         }
@@ -90,7 +90,7 @@ namespace SeaBattle
             if (mainSocket.Available > 0)
             {
                 var data = ListenSocketReceive(mainSocket);
-                Game.GetMessage(Converter.BytesToString(data.Item1, data.Item2));
+                Program.game.GetMessage(Converter.BytesToString(data.Item1, data.Item2));
             }
         }
         private static void ReSendData(byte[] data, Socket sender)

@@ -44,7 +44,7 @@ namespace SeaBattle
         {
             return Console.ReadLine();
         }
-        public static void GetMessage(string message)
+        public void GetMessage(string message)
         {
             var info = message.Split();
             try
@@ -58,7 +58,7 @@ namespace SeaBattle
             }
             Console.WriteLine(message);
         }
-        private static int CountLives(char[,] map)
+        private int CountLives(char[,] map)
         {
             int lives = 0;
             for (int i = 0; i < Game.Height; i++)
@@ -71,7 +71,7 @@ namespace SeaBattle
             }
             return lives;
         }
-        private static void CreateMap()
+        private void CreateMap()
         {
             Console.WriteLine("'your' ? or 'auto'");
             var createCommand = Console.ReadLine().ToLower();
@@ -81,7 +81,7 @@ namespace SeaBattle
                 map = MapFabric.CreateRandomMap(Game.Height, Game.Width);
             lives = CountLives(map);
         }
-        private static void TakeShot(string[] shot)
+        private void TakeShot(string[] shot)
         {
             if (shot.Length == 3 && !shoot)
             {
@@ -103,7 +103,7 @@ namespace SeaBattle
                 ConsoleDraw.Draw(map, mapEnemy);
             }
         }
-        private static void ReadShot(string[] shot)
+        private void ReadShot(string[] shot)
         {
             if (shot.Length == 5 && shoot)
             {
@@ -127,7 +127,7 @@ namespace SeaBattle
                 ConsoleDraw.Draw(map, mapEnemy);
             }
         }
-        private static void RestartGame()
+        private void RestartGame()
         {
             Console.Clear();
             Console.WriteLine("Restarting...");
