@@ -16,17 +16,18 @@ namespace SeaBattle
             for (int i = 0; i < 10; i++)
             {
                 Console.Write($"{i} ");
-                for (int ii = 0; ii < 10; ii++)
-                {
-                    Console.Write(map[i, ii]);
-                }
+                DrawMapLine(i, map);
                 Console.Write(" ");
                 Console.Write($"{i} ");
-                for (int ii = 0; ii < 10; ii++)
-                {
-                    Console.Write(mapEnemy[i, ii]);
-                }
+                DrawMapLine(i, mapEnemy);
                 Console.WriteLine();
+            }
+        }
+        private static void DrawMapLine(int line,char[,]map)
+        {
+            for (int i = 0; i < 10; i++)
+            {
+                Console.Write(map[line, i]);
             }
         }
         private static void DrawNums()

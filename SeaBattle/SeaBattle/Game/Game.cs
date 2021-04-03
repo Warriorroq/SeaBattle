@@ -10,11 +10,17 @@ namespace SeaBattle
 {
     public class Game
     {
-        private Thread writeToNet = new Thread(Protocol.UseConsoleAsChat);
         public static Random random = new Random();
+        public static int Height = 10;
+        public static int Width = 10;
+
+        private Thread writeToNet = new Thread(Protocol.UseConsoleAsChat);
         private static char[,] map = null;
-        private static char[,] mapEnemy = MapFabric.CreateEmptyMap(10,10);
-        static bool shoot = true;
+        private static char[,] mapEnemy = MapFabric.CreateEmptyMap(Game.Height, Game.Width);
+        private static bool shoot = false;
+        private static int lives = 0;
+        private static int wins = 0;
+        private static int loses = 0;
         public void SetUpServer()
         {
             Protocol.SetUpServer();
@@ -24,54 +30,27 @@ namespace SeaBattle
         public void SetUpConnection()
         {
             Protocol.SetUpConnection();
-            shoot = false;
             Start();
         }
         public void Start()
         {
-            //re write map creating
-            map = MapFabric.CreateMap(10, 10);
+            CreateMap();
             writeToNet.Start();
             ConsoleDraw.Draw(map, mapEnemy);
             Update();
             Protocol.Disconnect();
         }
-        ///Re write this
+        public static string ReadData()
+        {
+            return Console.ReadLine();
+        }
         public static void GetMessage(string message)
         {
-            var a = message.Split();
+            var info = message.Split();
             try
             {
-                if(!shoot)
-                {
-                    if(a.Length == 3)
-                    {
-                        int y = int.Parse(a[0]);
-                        int x = int.Parse(a[1]);
-
-                        if (map[y, x] == '■')
-                            map[y, x] = '♂';
-                        else if (map[y, x] == '░')
-                            map[y, x] = '☼';
-                        Protocol.Write($"{map[y, x]} {y} {x}");
-                        shoot = true;
-                        Console.Clear();
-                        ConsoleDraw.Draw(map, mapEnemy);
-                    }
-                }
-                else
-                {
-                    if(a.Length == 4)
-                    {
-                        char a1 = a[0][0];
-                        int y = int.Parse(a[1]);
-                        int x = int.Parse(a[2]);
-                        mapEnemy[y, x] = a1;
-                        shoot = false;
-                        Console.Clear();
-                        ConsoleDraw.Draw(map, mapEnemy);
-                    }
-                }
+                TakeShot(info);
+                ReadShot(info);
             }
             catch
             {
@@ -79,12 +58,93 @@ namespace SeaBattle
             }
             Console.WriteLine(message);
         }
+        private static int CountLives(char[,] map)
+        {
+            int lives = 0;
+            for (int i = 0; i < Game.Height; i++)
+            {
+                for (int j = 0; j < Game.Width; j++)
+                {
+                    if (map[i, j] == Symbols.ship)
+                        lives++;
+                }
+            }
+            return lives;
+        }
+        private static void CreateMap()
+        {
+            Console.WriteLine("'your' ? or 'auto'");
+            var createCommand = Console.ReadLine().ToLower();
+            if (createCommand == "your" || createCommand == "mine")
+                map = MapFabric.CreatePlayersMap(Game.Height, Game.Width);
+            else if(createCommand == "auto")
+                map = MapFabric.CreateRandomMap(Game.Height, Game.Width);
+            lives = CountLives(map);
+        }
+        private static void TakeShot(string[] shot)
+        {
+            if (shot.Length == 3 && !shoot)
+            {
+                int y = int.Parse(shot[0]);
+                int x = int.Parse(shot[1]);
+                if (map[y, x] == Symbols.ship)
+                {
+                    map[y, x] = Symbols.brokenShip;
+                    shoot = false;
+                    lives--;
+                }
+                else if (map[y, x] == Symbols.water)
+                {
+                    map[y, x] = Symbols.blushedWater;
+                    shoot = true;
+                }
+                Protocol.Write($"{map[y, x]} {y} {x} {lives}");
+                Console.Clear();
+                ConsoleDraw.Draw(map, mapEnemy);
+            }
+        }
+        private static void ReadShot(string[] shot)
+        {
+            if (shot.Length == 5 && shoot)
+            {
+                char a1 = shot[0][0];
+                int y = int.Parse(shot[1]);
+                int x = int.Parse(shot[2]);
+                int lives = int.Parse(shot[3]);
+
+                if (lives == 0)
+                {
+                    wins++;
+                    RestartGame();
+                }
+
+                mapEnemy[y, x] = a1;
+                if (a1 == Symbols.brokenShip)
+                    shoot = true;
+                else
+                    shoot = false;
+                Console.Clear();
+                ConsoleDraw.Draw(map, mapEnemy);
+            }
+        }
+        private static void RestartGame()
+        {
+            Console.Clear();
+            Console.WriteLine("Restarting...");
+            CreateMap();
+            mapEnemy = MapFabric.CreateEmptyMap(Game.Height, Game.Width);
+            ConsoleDraw.Draw(map,mapEnemy);
+        }
         private void Update()
         {
-            //Do score, game reload addictive connections
-            while (true)
+            while (wins != 3 || loses != 3)
             {
                 Protocol.UpdateConnection();
+                if (lives == 0)
+                {
+                    loses++;
+                    RestartGame();
+                }
             }
         }
     }

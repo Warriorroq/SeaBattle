@@ -8,8 +8,8 @@ namespace SeaBattle
 {
     public static class Protocol
     {
-        private static IPEndPoint ipPoint = new IPEndPoint(IPAddress.Parse(Program.address), Program.port);
         public static Socket mainSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+        private static IPEndPoint ipPoint = new IPEndPoint(IPAddress.Parse(Program.address), Program.port);
         private static List<Socket> sockets = null;
         public static void SetUpServer()
         {
@@ -26,7 +26,7 @@ namespace SeaBattle
                 {
                     sockets.Add(mainSocket.Accept());
                 }
-                Console.WriteLine("Подключилось 4 человека...");
+                Console.WriteLine("Подключились...");
             }
             catch (Exception ex)
             {
@@ -44,6 +44,34 @@ namespace SeaBattle
             {
                 Console.WriteLine(ex.Message);
             }
+        }
+        public static void UseConsoleAsChat()
+        {
+            while (sockets is null)
+                mainSocket.Send(Converter.StringToBytes(Game.ReadData()));
+            while (!(sockets is null))
+                ReSendData(Converter.StringToBytes(Game.ReadData()), null);
+        }
+        public static void Write(string data)
+        {
+            if (sockets is null)
+                mainSocket.Send(Converter.StringToBytes(data));
+            else
+                ReSendData(Converter.StringToBytes(data), null);
+        }
+        public static void UpdateConnection()
+        {
+            if (!(sockets is null))
+            {
+                UpdateSocketsInfo();
+            }
+            WriteNewInformation();
+        }
+        public static void Disconnect()
+        {
+            mainSocket.Shutdown(SocketShutdown.Receive);
+            mainSocket.Close();
+            Console.Read();
         }
         private static void UpdateSocketsInfo()
         {
@@ -65,20 +93,6 @@ namespace SeaBattle
                 Game.GetMessage(Converter.BytesToString(data.Item1, data.Item2));
             }
         }
-        public static void UseConsoleAsChat()
-        {
-            while (sockets is null)
-                mainSocket.Send(Converter.StringToBytes(Console.ReadLine()));
-            while (!(sockets is null))
-                ReSendData(Converter.StringToBytes(Console.ReadLine()), null);
-        }
-        public static void Write(string data)
-        {
-            if(sockets is null)
-                mainSocket.Send(Converter.StringToBytes(data));
-            else
-                ReSendData(Converter.StringToBytes(data), null);
-        }
         private static void ReSendData(byte[] data, Socket sender)
         {
             foreach (var socket in sockets)
@@ -96,20 +110,6 @@ namespace SeaBattle
             }
             while (socket.Available > 0);
             return (data, bytes);
-        }
-        public static void UpdateConnection()
-        {
-            if (!(sockets is null))
-            {
-                UpdateSocketsInfo();
-            }
-            WriteNewInformation();
-        }
-        public static void Disconnect()
-        {
-            mainSocket.Shutdown(SocketShutdown.Receive);
-            mainSocket.Close();
-            Console.Read();
         }
     }
 }

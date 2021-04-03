@@ -13,11 +13,18 @@ namespace SeaBattle
         static void Main(string[] args)
         {
             Console.WriteLine("0 - server | else - connect");
-            int a = int.Parse(Console.ReadLine());
-            if (a == 0)
-                new Game().SetUpServer();
-            else
+            try
+            {
+                int a = int.Parse(Console.ReadLine());
+                if (a == 0)
+                    new Game().SetUpServer();
+                else
+                    new Game().SetUpConnection();
+            }
+            catch
+            {
                 new Game().SetUpConnection();
+            }
         }
     }
 }
